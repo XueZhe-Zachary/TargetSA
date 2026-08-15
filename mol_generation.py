@@ -93,7 +93,7 @@ def mol_to_graph_data(mol):
 
     return data
 
-def new_mol_to_graph_data(mol, feq_list):
+def new_mol_to_graph_data(mol, feq_list=None):
     """
     Converts rdkit mol object to graph Data object required by the pytorch
     geometric package. NB: Uses simplified atom and bond features, and represent
@@ -205,13 +205,13 @@ class MaskAtom:
 
 def load_generative_model(model_file):
     model = GenerativeModel(num_layer=5, emb_dim=300)
-    model.load_state_dict(torch.load(model_file))
+    model.load_state_dict(torch.load(model_file, map_location="cpu"))
     model.eval()
     return model
 
 def load_generative_model2(model_file):
     model = GenerativeModel2(num_layer=5, emb_dim=300)
-    model.load_state_dict(torch.load(model_file))
+    model.load_state_dict(torch.load(model_file, map_location="cpu"))
     model.eval()
     return model
 
@@ -466,4 +466,3 @@ def choose_action(c):
     for i in range(len(c)):
         if c[i] >= r:
             return i
-

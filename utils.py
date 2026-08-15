@@ -292,7 +292,7 @@ def DockingScore_qvina_fixed(mol, prep_rep, centroid, origin_rep, origin_ligand)
     try:
         input_liand = 'prepared_ligand.pdbqt'
         ligand_sdf = mol2sdf(mol)
-        os.popen(f'obabel {ligand_sdf} -O {input_liand}').read
+        os.popen(f'obabel {ligand_sdf} -O {input_liand}').read()
     except Exception as e :
         print("failed to prepare ligand", e)
         score = 88888888

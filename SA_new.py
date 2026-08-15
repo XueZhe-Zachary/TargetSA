@@ -17,6 +17,8 @@ import os
 import pickle
 from optparse import OptionParser
 
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 # %%
 import torch
 import torch.nn as nn
@@ -81,9 +83,9 @@ class MolecularPredictionNetwork(nn.Module):
 # %%
 atom_input_size = 119
 atom_hidden_size = 300
-model_file = "model0105.pt"
+model_file = os.path.join(REPO_ROOT, "model", "model0105.pt")
 apn = MolecularPredictionNetwork(atom_input_size, atom_hidden_size)
-apn = torch.load(model_file)
+apn = torch.load(model_file, map_location="cpu")
 apn.eval()
 
 # %%
@@ -125,7 +127,7 @@ class simulate_anneal():
                 atom_nums = mol.GetNumAtoms()  
                 assert atom_nums>0
                 atom_candidates = apn([mol])[0].argsort(descending=True)[:5].tolist()
-                mol_candidates = mol_modify_candidates(mol,atom_candidates,self.maskatom,self.model,self.action_prob1,self.action_prob2,self.elements,topk=5)
+                mol_candidates, _, _ = mol_modify_candidates(mol,atom_candidates,self.maskatom,self.model,self.action_prob1,self.action_prob2,self.elements,topk=self.topk)
                 if not mol_candidates: continue
                 candidates_scores = []
                 for new_mol in mol_candidates:
@@ -224,7 +226,7 @@ class simulate_anneal():
             assert atom_nums>0
             # pos = idx % atom_nums
             pos = range(atom_nums)
-            mol_candidates = mol_modify_candidates(mol,pos,self.maskatom,self.model,self.action_prob1,self.action_prob2,self.elements,topk=5)
+            mol_candidates, _, _ = mol_modify_candidates(mol,pos,self.maskatom,self.model,self.action_prob1,self.action_prob2,self.elements,topk=self.topk)
             if not mol_candidates: # mol_candidates 为空
                 continue    
             for candidate in mol_candidates:
@@ -242,7 +244,7 @@ class simulate_anneal():
 # %%
 # 获得112个frag的smiles
 ligand_list = []
-file_path = "frag112.txt"
+file_path = os.path.join(REPO_ROOT, "frag112.txt")
 with open(file_path, 'r') as file:
     for line in file:
         smiles = line.strip()
@@ -255,10 +257,9 @@ parser.add_option("-p", "--pocket_path", dest="pocket_path", help="Specify the p
 (options, args) = parser.parse_args()
 if not options.pocket_path:
     parser.error("You must specify the pocket path using -p or --pocket_path option.")
-workdir = options.pocket_path    
+workdir = os.path.abspath(options.pocket_path)
 print("workdir:", workdir)
 
-os.chdir(workdir)
 for file_name in os.listdir(workdir):
     file_path = os.path.join(workdir, file_name)
 
@@ -272,6 +273,7 @@ for file_name in os.listdir(workdir):
 origin_ligand = ligand_sdf
 origin_receptor = protein_pdb
 
+os.chdir(workdir)
 if os.path.exists('prepared_rep.pdbqt'):
     prepared_rep = protein_pdbqt
 else:
@@ -282,7 +284,7 @@ else:
 centroid = calculate_center(ligand_sdf)
 
 print("current protein and ligand:", prepared_rep, ligand_sdf)
-sa = simulate_anneal('model/model_ep100.pth',t_min=0.1,t_max=1,inter_circul=5,action_prob1=[0.1,0.3,0.5, 0.1],action_prob2=[0.6,0.25,0.05, 0.1],elements=['C', 'N', 'O', 'P', 'S'], topk=5,prop='docking',threshold=0.1, orig_rep= origin_receptor, orig_lig= origin_ligand, prepared_rep = prepared_rep, prepared_center= centroid, maxmize=True)
+sa = simulate_anneal(os.path.join(REPO_ROOT, 'model', 'model_ep100.pth'),t_min=0.1,t_max=1,inter_circul=5,action_prob1=[0.1,0.3,0.5, 0.1],action_prob2=[0.6,0.25,0.05, 0.1],elements=['C', 'N', 'O', 'P', 'S'], topk=5,prop='docking',threshold=0.1, orig_rep= origin_receptor, orig_lig= origin_ligand, prepared_rep = prepared_rep, prepared_center= centroid, maxmize=True)
 
 first_mol_all = []
 final_mol_all = []
